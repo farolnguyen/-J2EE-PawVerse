@@ -49,9 +49,11 @@ public class ServiceBooking extends BaseEntity {
     @Column(name = "ghi_chu", columnDefinition = "TEXT")
     private String ghiChu;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_pet")
-    private PetProfile petProfile;
+    @Column(name = "pet_id_snapshot")
+    private Long petIdSnapshot;
+
+    @Column(name = "pet_name")
+    private String petName;
     
     @Column(name = "booking_status", nullable = false, columnDefinition = "VARCHAR(50)")
     @Enumerated(EnumType.STRING)
