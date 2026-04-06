@@ -11,6 +11,7 @@ services:
       - "8080"
     volumes:
       - uploads_data:/app/uploads
+      - images_data:/app/Images
     restart: unless-stopped
 
   frontend:
@@ -24,3 +25,4 @@ services:
 
 volumes:
   uploads_data:
+  images_data:
