@@ -208,11 +208,6 @@ public class AuthController {
         }
     }
     
-    @GetMapping("/test")
-    public ResponseEntity<String> test() {
-        return ResponseEntity.ok("Auth API is working!");
-    }
-    
     private Long getUserIdFromAuth(Authentication authentication) {
         try {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();

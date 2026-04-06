@@ -66,7 +66,7 @@ public class OrderService {
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
-        BigDecimal shippingFee = calculateShippingFee(request.getShippingCity());
+        BigDecimal shippingFee = calculateShippingFee(request.getLatitude(), request.getLongitude(), request.getShippingCity());
         BigDecimal discountAmount = BigDecimal.ZERO;
         Voucher voucher = null;
         
@@ -116,6 +116,8 @@ public class OrderService {
                 .phuongXa(request.getShippingWard())
                 .quanHuyen(request.getShippingDistrict())
                 .tinhThanhPho(request.getShippingCity())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .trangThaiOrder("PENDING")
                 .phuongThucThanhToan(request.getPaymentMethod())
                 .trangThaiThanhToan("UNPAID")
@@ -333,13 +335,37 @@ public class OrderService {
         
         orderRepository.save(order);
     }
-    
-    private BigDecimal calculateShippingFee(String city) {
-        // Simple shipping fee calculation
-        if (city.contains("Hồ Chí Minh") || city.contains("Hà Nội")) {
+
+    // Shop PawVerse coordinates: 10/80c Song Hành Xá Lộ Hà Nội, Tăng Nhơn Phú, Thủ Đức, HCM
+    private static final double SHOP_LAT = 10.8231;
+    private static final double SHOP_LNG = 106.7625;
+
+    private BigDecimal calculateShippingFee(Double latitude, Double longitude, String city) {
+        if (latitude != null && longitude != null) {
+            double distance = haversineDistance(SHOP_LAT, SHOP_LNG, latitude, longitude);
+            if (distance < 3.0) {
+                return BigDecimal.ZERO;
+            } else if (distance <= 8.0) {
+                return BigDecimal.valueOf(20000);
+            } else {
+                return BigDecimal.valueOf(30000);
+            }
+        }
+        if (city != null && (city.contains("Hồ Chí Minh") || city.contains("Hà Nội"))) {
             return BigDecimal.valueOf(30000);
         }
-        return BigDecimal.valueOf(50000);
+        return BigDecimal.valueOf(30000);
+    }
+
+    private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+        final double R = 6371.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
     
     private OrderDTO convertToDTO(Order order) {

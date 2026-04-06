@@ -6,6 +6,7 @@ import J2EE.PawVerse.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -69,4 +70,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
            "AND NOT EXISTS (SELECT r FROM Review r WHERE r.order.idOrder = o.idOrder " +
            "  AND r.user.idUser = :userId AND r.product.idProduct = :productId AND r.isDeleted = false)")
     boolean hasUnreviewedDeliveredPurchase(@Param("userId") Long userId, @Param("productId") Long productId);
+
+    @Modifying
+    @Query(value = "UPDATE reviews SET id_staff_reply_user = NULL WHERE id_staff_reply_user = :userId", nativeQuery = true)
+    void nullifyStaffReplyUser(@Param("userId") Long userId);
 }

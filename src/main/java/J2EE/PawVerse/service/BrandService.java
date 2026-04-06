@@ -5,6 +5,7 @@ import J2EE.PawVerse.dto.brand.BrandRequest;
 import J2EE.PawVerse.entity.Brand;
 import J2EE.PawVerse.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BrandService {
     
     private final BrandRepository brandRepository;
@@ -76,10 +78,24 @@ public class BrandService {
     
     @Transactional
     public void deleteBrand(Long id) {
+        Brand brand = brandRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy brand"));
+
         if (brandRepository.hasProducts(id)) {
-            throw new RuntimeException("Không thể xóa brand đang có sản phẩm");
+            Brand noBrand = brandRepository.findByTenBrand("No Brand")
+                    .orElseGet(() -> brandRepository.save(
+                            Brand.builder()
+                                    .tenBrand("No Brand")
+                                    .moTa("Thương hiệu mặc định cho sản phẩm chưa phân loại")
+                                    .trangThai("Hoạt động")
+                                    .build()));
+            brandRepository.reassignProductsToBrand(id, noBrand.getIdBrand());
+            log.info("Reassigned products from brand '{}' to 'No Brand'", brand.getTenBrand());
         }
+
+        brandRepository.nullifyVoucherBrand(id);
         brandRepository.deleteById(id);
+        log.info("Deleted brand: {}", brand.getTenBrand());
     }
     
     private BrandDTO convertToDTO(Brand brand) {

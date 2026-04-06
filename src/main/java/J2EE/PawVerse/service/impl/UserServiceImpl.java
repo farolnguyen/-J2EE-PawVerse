@@ -3,6 +3,7 @@ package J2EE.PawVerse.service.impl;
 import J2EE.PawVerse.dto.user.*;
 import J2EE.PawVerse.entity.Role;
 import J2EE.PawVerse.entity.User;
+import J2EE.PawVerse.repository.ReviewRepository;
 import J2EE.PawVerse.repository.RoleRepository;
 import J2EE.PawVerse.repository.UserRepository;
 import J2EE.PawVerse.service.UserService;
@@ -30,6 +31,7 @@ public class UserServiceImpl implements UserService {
     
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ReviewRepository reviewRepository;
     private final PasswordEncoder passwordEncoder;
     
     private static final String UPLOAD_DIR = "uploads/avatars/";
@@ -298,13 +300,20 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-        
+
+        if (isFirstAdmin(user)) {
+            throw new RuntimeException("Không thể xóa tài khoản Admin đầu tiên");
+        }
+
         if (user.getAvatar() != null && !user.getAvatar().isEmpty()) {
             deleteAvatarFile(user.getAvatar());
         }
-        
+
+        // Nullify staff_reply_user FK in reviews before deleting (other users' reviews)
+        reviewRepository.nullifyStaffReplyUser(userId);
+
+        // CascadeType.ALL on User handles: orders, order_items, wishlists, reviews, petProfiles, cart
         userRepository.delete(user);
-        
         log.info("Deleted userId: {}", userId);
     }
     

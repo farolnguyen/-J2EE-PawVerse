@@ -17,10 +17,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -35,6 +35,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final CaptchaService captchaService;
+    private final ReCaptchaVerificationService reCaptchaVerificationService;
     private static final int CAPTCHA_THRESHOLD = 3;
     private final Map<String, String> otpStorage = new HashMap<>();
     private final Map<String, LocalDateTime> otpExpiryStorage = new HashMap<>();
@@ -95,6 +96,15 @@ public class AuthService {
     
     @Transactional(noRollbackFor = RuntimeException.class)
     public AuthResponse login(LoginRequest request) {
+        // Verify Google reCAPTCHA token first (before any DB query)
+        if (request.getRecaptchaToken() != null && !request.getRecaptchaToken().isBlank()) {
+            try {
+                reCaptchaVerificationService.verify(request.getRecaptchaToken());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+
         User user = userRepository.findByUsername(request.getUsernameOrEmail())
                 .orElseGet(() -> userRepository.findByEmail(request.getUsernameOrEmail())
                         .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại")));
@@ -225,7 +235,7 @@ public class AuthService {
         } catch (Exception e) {
             log.error("Failed to send OTP email to: {}", user.getEmail(), e);
             // Still store OTP so user can retry
-            log.info("OTP for {} (email failed): {}", user.getEmail(), otp);
+            log.warn("OTP email delivery failed for: {} (check email config)", user.getEmail());
         }
     }
     
@@ -274,9 +284,7 @@ public class AuthService {
     
     @Transactional
     public AuthResponse refreshToken(String refreshToken) {
-        User user = userRepository.findAll().stream()
-                .filter(u -> refreshToken.equals(u.getRefreshToken()))
-                .findFirst()
+        User user = userRepository.findByRefreshToken(refreshToken)
                 .orElseThrow(() -> new RuntimeException("Refresh token không hợp lệ"));
         
         if (user.getRefreshTokenExpiry() == null || 
@@ -351,7 +359,7 @@ public class AuthService {
             log.info("Email verification OTP sent to: {}", email);
         } catch (Exception e) {
             log.error("Failed to send verification email to: {}", email, e);
-            log.info("Verification OTP for {} (email failed): {}", email, otp);
+            log.warn("Verification email delivery failed for: {} (check email config)", email);
             throw new RuntimeException("Gửi email xác thực thất bại. Vui lòng thử lại.");
         }
     }
@@ -391,8 +399,8 @@ public class AuthService {
     }
     
     private String generateOTP() {
-        Random random = new Random();
-        int otp = 100000 + random.nextInt(900000);
+        SecureRandom secureRandom = new SecureRandom();
+        int otp = 100000 + secureRandom.nextInt(900000);
         return String.valueOf(otp);
     }
 }

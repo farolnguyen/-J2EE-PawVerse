@@ -5,6 +5,7 @@ import J2EE.PawVerse.dto.category.CategoryRequest;
 import J2EE.PawVerse.entity.Category;
 import J2EE.PawVerse.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryService {
     
     private final CategoryRepository categoryRepository;
@@ -76,10 +78,24 @@ public class CategoryService {
     
     @Transactional
     public void deleteCategory(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
+
         if (categoryRepository.hasProducts(id)) {
-            throw new RuntimeException("Không thể xóa category đang có sản phẩm");
+            Category fallback = categoryRepository.findByTenCategory("Khác")
+                    .orElseGet(() -> categoryRepository.save(
+                            Category.builder()
+                                    .tenCategory("Khác")
+                                    .moTa("Danh mục mặc định cho sản phẩm chưa phân loại")
+                                    .trangThai("Hoạt động")
+                                    .build()));
+            categoryRepository.reassignProductsToCategory(id, fallback.getIdCategory());
+            log.info("Reassigned products from category '{}' to 'Khác'", category.getTenCategory());
         }
+
+        categoryRepository.nullifyVoucherCategory(id);
         categoryRepository.deleteById(id);
+        log.info("Deleted category: {}", category.getTenCategory());
     }
     
     private CategoryDTO convertToDTO(Category category) {

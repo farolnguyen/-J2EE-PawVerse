@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+
+  backend:
+    image: ${DOCKER_HUB_USERNAME}/pawverse-backend:${IMAGE_TAG:-latest}
+    container_name: pawverse-backend
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    expose:
+      - "8080"
+    volumes:
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    image: ${DOCKER_HUB_USERNAME}/pawverse-frontend:${IMAGE_TAG:-latest}
+    container_name: pawverse-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  uploads_data:

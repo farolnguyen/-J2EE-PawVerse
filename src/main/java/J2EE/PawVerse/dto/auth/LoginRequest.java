@@ -20,4 +20,5 @@ public class LoginRequest {
 
     private String captchaToken;
     private String captchaAnswer;
+    private String recaptchaToken;
 }

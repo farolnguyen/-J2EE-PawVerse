@@ -52,6 +52,12 @@ public class Order extends BaseEntity {
     @Column(name = "tinh_thanh_pho")
     private String tinhThanhPho;
     
+    @Column(name = "latitude")
+    private Double latitude;
+    
+    @Column(name = "longitude")
+    private Double longitude;
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_voucher")
     private Voucher voucher;

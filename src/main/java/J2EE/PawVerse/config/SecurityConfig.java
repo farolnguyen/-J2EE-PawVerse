@@ -24,6 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.web.client.RestTemplate;
 import java.util.Arrays;
 
 @Configuration(proxyBeanMethods = false)
@@ -69,11 +70,18 @@ public class SecurityConfig {
                                 .maxAgeInSeconds(31536000))
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives("default-src 'self'; " +
-                                        "script-src 'self' 'unsafe-inline'; " +
-                                        "style-src 'self' 'unsafe-inline'; " +
-                                        "img-src 'self' data: https:; " +
-                                        "font-src 'self' data:; " +
-                                        "connect-src 'self'"))
+                                        "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com; " +
+                                        "style-src 'self' 'unsafe-inline' https://www.gstatic.com; " +
+                                        "img-src 'self' data: https: blob:; " +
+                                        "font-src 'self' data: https://fonts.gstatic.com; " +
+                                        "frame-src https://www.google.com; " +
+                                        "connect-src 'self' https://api.coze.com https://provinces.open-api.vn https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org; " +
+                                        "worker-src 'self' blob:"))
+                        .referrerPolicy(rp -> rp
+                                .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        .permissionsPolicy(pp -> pp
+                                .policy("camera=(), microphone=(), geolocation=(self), payment=()")
+                        )
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
@@ -101,6 +109,11 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
     
     @Bean

@@ -8,6 +8,7 @@ import J2EE.PawVerse.entity.Category;
 import J2EE.PawVerse.entity.Voucher;
 import J2EE.PawVerse.repository.BrandRepository;
 import J2EE.PawVerse.repository.CategoryRepository;
+import J2EE.PawVerse.repository.OrderRepository;
 import J2EE.PawVerse.repository.VoucherRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class VoucherService {
     private final VoucherRepository voucherRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
+    private final OrderRepository orderRepository;
 
     @Transactional(readOnly = true)
     public VoucherDTO validateVoucher(String code) {
@@ -169,11 +171,9 @@ public class VoucherService {
     public void deleteVoucher(Long id) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy voucher"));
-        if (voucher.getUsedCount() > 0) {
-            throw new RuntimeException("Không thể xóa voucher đã được sử dụng. Hãy vô hiệu hóa thay vì xóa.");
-        }
+        orderRepository.nullifyVoucherReference(id);
         voucherRepository.delete(voucher);
-        log.info("Deleted voucher: {}", voucher.getMaVoucher());
+        log.info("Deleted voucher: {} (was used {} time(s))", voucher.getMaVoucher(), voucher.getUsedCount());
     }
 
     private void validateDiscountValues(Voucher.VoucherType type, Integer percentage, java.math.BigDecimal fixedValue) {

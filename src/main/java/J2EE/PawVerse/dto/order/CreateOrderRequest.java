@@ -43,4 +43,6 @@ public class CreateOrderRequest {
     
     private String voucherCode;
     private String note;
+    private Double latitude;
+    private Double longitude;
 }

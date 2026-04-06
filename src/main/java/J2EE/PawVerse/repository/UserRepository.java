@@ -52,6 +52,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> findByLockedStatusAndSearch(@Param("locked") Boolean locked, @Param("search") String search, Pageable pageable);
     
     long countByIsLocked(Boolean isLocked);
+
+    Optional<User> findByRefreshToken(String refreshToken);
     
     @Query("SELECT COUNT(u) FROM User u WHERE u.role.tenRole = :roleName")
     long countByRoleName(@Param("roleName") String roleName);

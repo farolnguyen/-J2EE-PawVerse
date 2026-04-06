@@ -5,6 +5,7 @@ import J2EE.PawVerse.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -74,4 +75,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "  AND r.user.idUser = :userId AND r.product.idProduct = :productId AND r.isDeleted = false) " +
            "ORDER BY o.ngayTao DESC")
     List<Order> findUnreviewedDeliveredOrdersForUserProduct(@Param("userId") Long userId, @Param("productId") Long productId);
+
+    @Modifying
+    @Query(value = "UPDATE orders SET id_voucher = NULL WHERE id_voucher = :voucherId", nativeQuery = true)
+    void nullifyVoucherReference(@Param("voucherId") Long voucherId);
 }
