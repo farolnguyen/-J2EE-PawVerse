@@ -59,6 +59,7 @@ public class ProductService {
                 request.getBrandId(),
                 request.getMinPrice(),
                 request.getMaxPrice(),
+                request.getMinRating(),
                 pageable
         );
         

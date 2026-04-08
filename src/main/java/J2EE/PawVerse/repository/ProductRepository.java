@@ -54,13 +54,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "AND (:categoryId IS NULL OR p.category.idCategory = :categoryId) " +
            "AND (:brandId IS NULL OR p.brand.idBrand = :brandId) " +
            "AND (:minPrice IS NULL OR p.giaBan >= :minPrice) " +
-           "AND (:maxPrice IS NULL OR p.giaBan <= :maxPrice)")
+           "AND (:maxPrice IS NULL OR p.giaBan <= :maxPrice) " +
+           "AND (:minRating IS NULL OR p.avgRating >= :minRating)")
     Page<Product> searchProductsWithFilters(
         @Param("keyword") String keyword,
         @Param("categoryId") Long categoryId,
         @Param("brandId") Long brandId,
         @Param("minPrice") BigDecimal minPrice,
         @Param("maxPrice") BigDecimal maxPrice,
+        @Param("minRating") Double minRating,
         Pageable pageable
     );
 
