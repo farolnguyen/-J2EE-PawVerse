@@ -24,13 +24,15 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final int WINDOW_MS = 60_000; // 1 minute sliding window
 
     // Per-endpoint limits (requests per minute per IP)
-    // Values are tuned for ~100 concurrent users sharing one IP (classroom/lab environment).
-    // Brute-force is still blocked by per-account lockout (7 failed attempts) + CAPTCHA.
-    private static final int LIMIT_AUTH_LOGIN    = 300;   // 100 users login burst; brute-force blocked by lockout+CAPTCHA
-    private static final int LIMIT_AUTH_GENERAL  = 600;   // register, OTP, forgot-password
-    private static final int LIMIT_ORDER_CREATE  = 600;   // students placing/cancelling orders repeatedly
-    private static final int LIMIT_CART          = 6000;  // ~60 cart ops/min/user × 100 users
-    private static final int LIMIT_API_DEFAULT   = 15000; // ~150 req/min/user × 100 users (2-core 4GB handles ~500 req/s)
+    // Nginx is the first line of defence (rate zones). Spring acts as a second layer.
+    private static final int LIMIT_CHATBOT           = 30;    // external AI API — very expensive
+    private static final int LIMIT_ANALYTICS_EXPORT  = 5;     // Excel export — heavy CPU + memory
+    private static final int LIMIT_ANALYTICS         = 20;    // analytics dashboard — heavy DB aggregation
+    private static final int LIMIT_AUTH_LOGIN        = 30;    // brute-force also blocked by lockout+CAPTCHA
+    private static final int LIMIT_AUTH_GENERAL      = 60;    // register, OTP, forgot-password
+    private static final int LIMIT_ORDER_CREATE      = 60;    // place / cancel orders
+    private static final int LIMIT_CART              = 600;   // cart read/write ops
+    private static final int LIMIT_API_DEFAULT       = 300;   // all other API endpoints
 
     // key = "IP::bucket_name" → queue of timestamps
     private final Map<String, Queue<Long>> requestLog = new ConcurrentHashMap<>();
@@ -67,20 +69,26 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private String resolveBucket(String uri, String method) {
-        if (uri.contains("/api/auth/login"))         return "auth_login";
-        if (uri.contains("/api/auth/"))              return "auth_general";
+        if (uri.contains("/api/public/chatbot"))                             return "chatbot";
+        if (uri.contains("/api/admin/analytics/export"))                     return "analytics_export";
+        if (uri.contains("/api/admin/analytics"))                            return "analytics";
+        if (uri.contains("/api/auth/login"))                                 return "auth_login";
+        if (uri.contains("/api/auth/"))                                      return "auth_general";
         if (uri.contains("/api/user/orders") && "POST".equalsIgnoreCase(method)) return "order_create";
-        if (uri.contains("/api/user/cart"))          return "cart";
+        if (uri.contains("/api/user/cart"))                                  return "cart";
         return "api_default";
     }
 
     private int resolveLimit(String bucket) {
         return switch (bucket) {
-            case "auth_login"    -> LIMIT_AUTH_LOGIN;
-            case "auth_general"  -> LIMIT_AUTH_GENERAL;
-            case "order_create"  -> LIMIT_ORDER_CREATE;
-            case "cart"          -> LIMIT_CART;
-            default              -> LIMIT_API_DEFAULT;
+            case "chatbot"            -> LIMIT_CHATBOT;
+            case "analytics_export"   -> LIMIT_ANALYTICS_EXPORT;
+            case "analytics"          -> LIMIT_ANALYTICS;
+            case "auth_login"         -> LIMIT_AUTH_LOGIN;
+            case "auth_general"       -> LIMIT_AUTH_GENERAL;
+            case "order_create"       -> LIMIT_ORDER_CREATE;
+            case "cart"               -> LIMIT_CART;
+            default                   -> LIMIT_API_DEFAULT;
         };
     }
 
