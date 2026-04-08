@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,6 +45,10 @@ public class ServiceBookingService {
         if (serviceType == ServiceBooking.ServiceType.HOME_SERVICE && 
             (request.getDiaChi() == null || request.getDiaChi().isBlank())) {
             throw new RuntimeException("Dịch vụ tận nhà yêu cầu nhập địa chỉ");
+        }
+
+        if (request.getNgayGioDat() != null && request.getNgayGioDat().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Ngày giờ đặt lịch phải là thời điểm trong tương lai");
         }
 
         PetProfile pet = null;
